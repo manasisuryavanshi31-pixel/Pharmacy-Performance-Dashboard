@@ -1,0 +1,11 @@
+TransactionID,Date,DrugName,Category,UnitsSold,UnitPriceINR,TotalRevenueINR,StoreLocation,GenericStatus,CalculatedRevenueINR,RevenueCheck
+TXN-801,2026-06-01,Paracetamol 650mg,Analgesic,150,15,2250,Mumbai North,Generic,2250,Match
+TXN-802,2026-06-01,Amoxicillin 500mg,Antibiotic,45,85,3825,Delhi Central,Branded,3825,Match
+TXN-803,2026-06-02,Metformin 500mg,Antidiabetic,120,25,3000,Bangalore East,Generic,3000,Match
+TXN-804,2026-06-02,Atorvastatin 10mg,Cardiovascular,80,110,8800,Mumbai North,Branded,8800,Match
+TXN-805,2026-06-03,Pantoprazole 40mg,Gastrointestinal,95,45,4275,Hyderabad Central,Generic,4275,Match
+TXN-806,2026-06-03,Azithromycin 500mg,Antibiotic,60,130,7800,Delhi Central,Branded,7800,Match
+TXN-807,2026-06-04,Cetirizine 10mg,Antihistamine,200,12,2400,Bangalore East,Generic,2400,Match
+TXN-808,2026-06-04,Amlodipine 5mg,Cardiovascular,110,30,3300,Mumbai North,Generic,3300,Match
+TXN-809,2026-06-05,Ibuprofen 400mg,Analgesic,130,22,2860,Hyderabad Central,Generic,2860,Match
+TXN-810,2026-06-05,Vitamin D3 60k,Supplement,175,90,15750,Delhi Central,Branded,15750,Match

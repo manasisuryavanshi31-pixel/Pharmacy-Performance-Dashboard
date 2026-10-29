@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pharmacy Performance Dashboard</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--ink:#16233a;--muted:#64748b;--blue:#2458a6;--teal:#138a85;--line:#e3eaf3}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Arial,sans-serif}
+header{background:linear-gradient(120deg,#173b72,#247a8d);color:#fff;padding:28px max(20px,calc((100vw - 1180px)/2))}
+header h1{margin:0 0 6px;font-size:28px} header p{margin:0;color:#e5f3ff}
+main{max-width:1180px;margin:22px auto;padding:0 18px}
+.notice{background:#fff8e7;border:1px solid #f2d38b;border-radius:12px;padding:13px 16px;margin-bottom:16px;color:#684b0d}
+.filters{display:flex;gap:12px;flex-wrap:wrap;background:var(--card);padding:14px;border-radius:14px;margin-bottom:16px;box-shadow:0 3px 12px #18345b0a}
+label{display:flex;flex-direction:column;gap:5px;color:var(--muted);font-size:12px;font-weight:bold}
+select,input{min-width:160px;border:1px solid var(--line);padding:9px 10px;border-radius:8px;background:white;color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:16px}
+.kpi{background:var(--card);padding:18px;border-radius:14px;box-shadow:0 3px 12px #18345b0a;border:1px solid #edf1f7}
+.kpi .label{color:var(--muted);font-size:12px} .kpi .value{font-size:26px;font-weight:700;margin-top:6px} .kpi .sub{font-size:12px;color:var(--muted);margin-top:5px}
+.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.chart{background:var(--card);padding:12px;border-radius:14px;min-width:0;box-shadow:0 3px 12px #18345b0a}
+.chart h2{font-size:16px;margin:6px 8px 0} .plot{height:300px}
+.table-wrap{overflow:auto;background:white;border-radius:14px;margin-top:16px;padding:14px}
+table{border-collapse:collapse;width:100%;font-size:13px} th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap} th{background:#f5f8fc}
+footer{color:var(--muted);font-size:12px;padding:22px 2px}
+@media(max-width:760px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.charts{grid-template-columns:1fr}header h1{font-size:23px}}
+</style></head>
+<body>
+<header><h1>Pharmacy Performance Dashboard</h1><p>Sales operations overview · 01 Jun 2026 – 05 Jun 2026 · INR</p></header>
+<main>
+<div class="notice"><b>Data limitation:</b> The supplied file has no cost/COGS field, so profit and margin cannot be calculated. Growth below is day-over-day revenue change for the available dates. This is a sales performance analysis, not a clinical or medical-effectiveness assessment.</div>
+<div class="filters">
+<label>Category<select id="categoryFilter"><option value="All">All categories</option><option>Analgesic</option><option>Antibiotic</option><option>Antidiabetic</option><option>Antihistamine</option><option>Cardiovascular</option><option>Gastrointestinal</option><option>Supplement</option></select></label>
+<label>Generic status<select id="statusFilter"><option value="All">Branded + Generic</option><option>Branded</option><option>Generic</option></select></label>
+<label>Store location<select id="storeFilter"><option value="All">All stores</option><option>Bangalore East</option><option>Delhi Central</option><option>Hyderabad Central</option><option>Mumbai North</option></select></label>
+<label>Search product<input id="searchFilter" placeholder="Type a drug name"></label>
+</div>
+<section class="kpis">
+<div class="kpi"><div class="label">Total revenue</div><div class="value" id="kRevenue">₹0</div><div class="sub">Recorded sales revenue</div></div>
+<div class="kpi"><div class="label">Units sold</div><div class="value" id="kUnits">0</div><div class="sub">Sum of units sold</div></div>
+<div class="kpi"><div class="label">Transactions</div><div class="value" id="kTxn">0</div><div class="sub">Rows in selected view</div></div>
+<div class="kpi"><div class="label">Average revenue / row</div><div class="value" id="kAvg">₹0</div><div class="sub">Revenue ÷ transactions (not customer basket value)</div></div>
+</section>
+<section class="charts">
+<div class="chart"><h2>Revenue by category</h2><div id="catChart" class="plot"></div></div>
+<div class="chart"><h2>Branded vs generic revenue</h2><div id="statusChart" class="plot"></div></div>
+<div class="chart"><h2>Daily revenue trend</h2><div id="dailyChart" class="plot"></div></div>
+<div class="chart"><h2>Top products by revenue</h2><div id="productChart" class="plot"></div></div>
+</section>
+<div class="table-wrap"><h2 style="font-size:16px;margin:4px 0 12px">Filtered transaction details</h2><table><thead><tr><th>Transaction</th><th>Date</th><th>Drug</th><th>Category</th><th>Units</th><th>Unit price</th><th>Revenue</th><th>Store</th><th>Status</th><th>Revenue check</th></tr></thead><tbody id="dataRows"></tbody></table></div>
+<footer>Source: pharmacy_sales_sample.csv supplied for the task. Revenue check compares reported revenue with UnitsSold × UnitPriceINR. All amounts in INR. Growth and contribution describe only this sample.</footer>
+</main>
+<script>
+const allRows = [{"TransactionID": "TXN-801", "Date": "2026-06-01", "DrugName": "Paracetamol 650mg", "Category": "Analgesic", "UnitsSold": 150, "UnitPriceINR": 15, "TotalRevenueINR": 2250, "StoreLocation": "Mumbai North", "GenericStatus": "Generic", "CalculatedRevenueINR": 2250, "RevenueCheck": "Match"}, {"TransactionID": "TXN-802", "Date": "2026-06-01", "DrugName": "Amoxicillin 500mg", "Category": "Antibiotic", "UnitsSold": 45, "UnitPriceINR": 85, "TotalRevenueINR": 3825, "StoreLocation": "Delhi Central", "GenericStatus": "Branded", "CalculatedRevenueINR": 3825, "RevenueCheck": "Match"}, {"TransactionID": "TXN-803", "Date": "2026-06-02", "DrugName": "Metformin 500mg", "Category": "Antidiabetic", "UnitsSold": 120, "UnitPriceINR": 25, "TotalRevenueINR": 3000, "StoreLocation": "Bangalore East", "GenericStatus": "Generic", "CalculatedRevenueINR": 3000, "RevenueCheck": "Match"}, {"TransactionID": "TXN-804", "Date": "2026-06-02", "DrugName": "Atorvastatin 10mg", "Category": "Cardiovascular", "UnitsSold": 80, "UnitPriceINR": 110, "TotalRevenueINR": 8800, "StoreLocation": "Mumbai North", "GenericStatus": "Branded", "CalculatedRevenueINR": 8800, "RevenueCheck": "Match"}, {"TransactionID": "TXN-805", "Date": "2026-06-03", "DrugName": "Pantoprazole 40mg", "Category": "Gastrointestinal", "UnitsSold": 95, "UnitPriceINR": 45, "TotalRevenueINR": 4275, "StoreLocation": "Hyderabad Central", "GenericStatus": "Generic", "CalculatedRevenueINR": 4275, "RevenueCheck": "Match"}, {"TransactionID": "TXN-806", "Date": "2026-06-03", "DrugName": "Azithromycin 500mg", "Category": "Antibiotic", "UnitsSold": 60, "UnitPriceINR": 130, "TotalRevenueINR": 7800, "StoreLocation": "Delhi Central", "GenericStatus": "Branded", "CalculatedRevenueINR": 7800, "RevenueCheck": "Match"}, {"TransactionID": "TXN-807", "Date": "2026-06-04", "DrugName": "Cetirizine 10mg", "Category": "Antihistamine", "UnitsSold": 200, "UnitPriceINR": 12, "TotalRevenueINR": 2400, "StoreLocation": "Bangalore East", "GenericStatus": "Generic", "CalculatedRevenueINR": 2400, "RevenueCheck": "Match"}, {"TransactionID": "TXN-808", "Date": "2026-06-04", "DrugName": "Amlodipine 5mg", "Category": "Cardiovascular", "UnitsSold": 110, "UnitPriceINR": 30, "TotalRevenueINR": 3300, "StoreLocation": "Mumbai North", "GenericStatus": "Generic", "CalculatedRevenueINR": 3300, "RevenueCheck": "Match"}, {"TransactionID": "TXN-809", "Date": "2026-06-05", "DrugName": "Ibuprofen 400mg", "Category": "Analgesic", "UnitsSold": 130, "UnitPriceINR": 22, "TotalRevenueINR": 2860, "StoreLocation": "Hyderabad Central", "GenericStatus": "Generic", "CalculatedRevenueINR": 2860, "RevenueCheck": "Match"}, {"TransactionID": "TXN-810", "Date": "2026-06-05", "DrugName": "Vitamin D3 60k", "Category": "Supplement", "UnitsSold": 175, "UnitPriceINR": 90, "TotalRevenueINR": 15750, "StoreLocation": "Delhi Central", "GenericStatus": "Branded", "CalculatedRevenueINR": 15750, "RevenueCheck": "Match"}];
+const inr = n => new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:0}).format(n);
+const num = n => new Intl.NumberFormat('en-IN',{maximumFractionDigits:0}).format(n);
+function render(){
+ const cat=document.getElementById('categoryFilter').value, status=document.getElementById('statusFilter').value, store=document.getElementById('storeFilter').value, q=document.getElementById('searchFilter').value.toLowerCase();
+ const rows=allRows.filter(r=>(cat==='All'||r.Category===cat)&&(status==='All'||r.GenericStatus===status)&&(store==='All'||r.StoreLocation===store)&&r.DrugName.toLowerCase().includes(q));
+ const rev=rows.reduce((s,r)=>s+Number(r.TotalRevenueINR||0),0), units=rows.reduce((s,r)=>s+Number(r.UnitsSold||0),0);
+ document.getElementById('kRevenue').textContent=inr(rev); document.getElementById('kUnits').textContent=num(units); document.getElementById('kTxn').textContent=num(rows.length); document.getElementById('kAvg').textContent=inr(rows.length?rev/rows.length:0);
+ const sum=(key)=>{let o={};rows.forEach(r=>o[r[key]]=(o[r[key]]||0)+Number(r.TotalRevenueINR||0));return o};
+ const c=sum('Category'), s=sum('GenericStatus'), d=sum('Date'), p=sum('DrugName');
+ const common={paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{family:'Arial',color:'#334155'},margin:{l:50,r:15,t:15,b:65},autosize:true};
+ Plotly.react('catChart',[{type:'bar',x:Object.keys(c),y:Object.values(c),marker:{color:'#2458a6'},hovertemplate:'%{x}<br>₹%{y:,.0f}<extra></extra>'}],{...common,xaxis:{tickangle:-25},yaxis:{tickprefix:'₹',tickformat:',.0f'}},{responsive:true,displayModeBar:false});
+ Plotly.react('statusChart',[{type:'pie',labels:Object.keys(s),values:Object.values(s),hole:.52,marker:{colors:['#2458a6','#13a89e']},textinfo:'label+percent',hovertemplate:'%{label}<br>₹%{value:,.0f}<extra></extra>'}],{...common,showlegend:true,margin:{l:10,r:10,t:15,b:20}},{responsive:true,displayModeBar:false});
+ const ds=Object.keys(d).sort(); Plotly.react('dailyChart',[{type:'scatter',mode:'lines+markers',x:ds,y:ds.map(x=>d[x]),line:{color:'#138a85',width:3},marker:{size:8},hovertemplate:'%{x}<br>₹%{y:,.0f}<extra></extra>'}],{...common,xaxis:{type:'category'},yaxis:{tickprefix:'₹',tickformat:',.0f'}},{responsive:true,displayModeBar:false});
+ const ps=Object.keys(p).sort((a,b)=>p[a]-p[b]); Plotly.react('productChart',[{type:'bar',orientation:'h',y:ps,x:ps.map(x=>p[x]),marker:{color:'#4c78a8'},hovertemplate:'%{y}<br>₹%{x:,.0f}<extra></extra>'}],{...common,margin:{l:140,r:15,t:15,b:40},xaxis:{tickprefix:'₹',tickformat:',.0f'}},{responsive:true,displayModeBar:false});
+ document.getElementById('dataRows').innerHTML=rows.map(r=>`<tr><td>${r.TransactionID}</td><td>${r.Date}</td><td>${r.DrugName}</td><td>${r.Category}</td><td>${r.UnitsSold}</td><td>${inr(r.UnitPriceINR)}</td><td>${inr(r.TotalRevenueINR)}</td><td>${r.StoreLocation}</td><td>${r.GenericStatus}</td><td>${r.RevenueCheck}</td></tr>`).join('');
+}
+['categoryFilter','statusFilter','storeFilter','searchFilter'].forEach(id=>document.getElementById(id).addEventListener('input',render)); render();
+</script></body></html>
